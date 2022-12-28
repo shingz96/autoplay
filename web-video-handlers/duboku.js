@@ -13,6 +13,8 @@ export default async function (page) {
 
   if (!frame) return;
 
+  console.log("=== Using Duboku handler ===");
+
   // play video in fullscreen
   const videoSelector = "#playerCnt_html5_api";
   await frame.$eval(videoSelector, (video) => video.play());
