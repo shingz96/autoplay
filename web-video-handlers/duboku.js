@@ -1,4 +1,6 @@
-export default async function (page) {
+import rememberLastURL from "../utils/rememberLastURL.js";
+
+export default async function (page, { ...args }) {
   let dubokuPlayerURLs = ["vidjs.html"];
 
   // find the right duboku frame
@@ -15,8 +17,11 @@ export default async function (page) {
 
   console.log("=== Using Duboku handler ===");
 
+  rememberLastURL(page.url(), args.lastVisitURLFile);
+
   // play video in fullscreen
   const videoSelector = "#playerCnt_html5_api";
+  await frame.waitForSelector(videoSelector);
   await frame.$eval(videoSelector, (video) => video.play());
   await frame.$eval(videoSelector, (video) => video.requestFullscreen());
 

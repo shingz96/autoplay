@@ -89,9 +89,35 @@ async function setupAutoPlayFunctions(page) {
   page.on("load", async () => {
     console.log("visiting page ->", page.url());
 
-    dubokuHandler(page);
+    const LAST_VISIT_URL_FILE = path.join(
+      process.env.USER_DATA_PATH,
+      "LAST_VISIT_URL"
+    );
 
-    dramaqHandler(page);
+    if (page.url().includes(homepage.replace(/\\/gi, "/"))) {
+      fs.readFile(LAST_VISIT_URL_FILE, "utf8", async (err, data) => {
+        if (!err && data) {
+          await page.$eval(
+            "ul.list-unstyled",
+            (ul, data) => {
+              let li = document.createElement("li");
+              let link = document.createElement("a");
+              link.setAttribute("href", data);
+              link.appendChild(
+                document.createTextNode("Click here to continue Last Visit")
+              );
+              li.appendChild(link);
+              ul.appendChild(li);
+            },
+            data
+          );
+        }
+      });
+    }
+
+    dubokuHandler(page, { lastVisitURLFile: LAST_VISIT_URL_FILE });
+
+    dramaqHandler(page, { lastVisitURLFile: LAST_VISIT_URL_FILE });
   });
 
   const homepage = path.join(__dirname, "home", "index.html");

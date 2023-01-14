@@ -1,3 +1,5 @@
+import rememberLastURL from "../utils/rememberLastURL.js";
+
 function checkIncludes(tocheck, possibleList) {
   for (let possible of possibleList) {
     if (tocheck.includes(possible)) {
@@ -25,7 +27,7 @@ function waitForFrame(page, dramaqHostname) {
   }
 }
 
-export default async function (page) {
+export default async function (page, { ...args }) {
   const dramaqNames = ["dramaq", "dramasq", "qdrama"];
 
   if (
@@ -58,56 +60,57 @@ export default async function (page) {
     (await page.evaluate(() => location.host)) + "/a/m3u8/";
 
   const frame = await waitForFrame(page, dramaqHostname);
-  if (frame) {
-    await frame.waitForSelector("#dplayer");
+  if (!frame) return;
 
-    // play video in fullscreen
-    const videoSelector = "#dplayer > div.dplayer-video-wrap > video";
-    await frame.$eval(videoSelector, (video) => video.play());
-    await frame.$eval(videoSelector, (video) => video.requestFullscreen());
+  rememberLastURL(page.url(), args.lastVisitURLFile);
 
-    // get next episode video link
-    let duration = await frame.$eval(videoSelector, (video) => video.duration);
-    let ended = await frame.$eval(videoSelector, (video) => video.ended);
-    let nextLink;
-    try {
-      nextLink = await page.$eval(
-        "body > div.main.inner.sizing > div.content.sizing > div.nextep > li > a",
-        (a) => a.href
-      );
-    } catch (error) {}
+  // play video in fullscreen
+  const videoSelector = "#dplayer > div.dplayer-video-wrap > video";
+  await frame.waitForSelector("#dplayer");
+  await frame.$eval(videoSelector, (video) => video.play());
+  await frame.$eval(videoSelector, (video) => video.requestFullscreen());
 
-    console.log("ended", ended);
-    console.log("duration", duration);
-    console.log("nextLink", nextLink);
+  // get next episode video link
+  let duration = await frame.$eval(videoSelector, (video) => video.duration);
+  let ended = await frame.$eval(videoSelector, (video) => video.ended);
+  let nextLink;
+  try {
+    nextLink = await page.$eval(
+      "body > div.main.inner.sizing > div.content.sizing > div.nextep > li > a",
+      (a) => a.href
+    );
+  } catch (error) {}
 
-    // go to next episode when video is ended
-    if (nextLink) {
-      await frame.$eval(
-        videoSelector,
-        (video, next) => {
-          video.onended = () => {
-            window.playNext(next);
-          };
-          //   function checkTime() {
-          //     if (video.currentTime >= 42 * 60) {
-          //       window.playNext(next);
-          //     } else {
-          //       setTimeout(checkTime, 1000);
-          //     }
-          //   }
-          //   checkTime();
-        },
-        nextLink
-      );
-      return;
-    }
+  console.log("ended", ended);
+  console.log("duration", duration);
+  console.log("nextLink", nextLink);
 
-    // exit fullscreen if no any next episode
-    await frame.$eval(videoSelector, (video) => {
-      video.onended = () => {
-        window.exitFullscreen();
-      };
-    });
+  // go to next episode when video is ended
+  if (nextLink) {
+    await frame.$eval(
+      videoSelector,
+      (video, next) => {
+        video.onended = () => {
+          window.playNext(next);
+        };
+        //   function checkTime() {
+        //     if (video.currentTime >= 42 * 60) {
+        //       window.playNext(next);
+        //     } else {
+        //       setTimeout(checkTime, 1000);
+        //     }
+        //   }
+        //   checkTime();
+      },
+      nextLink
+    );
+    return;
   }
+
+  // exit fullscreen if no any next episode
+  await frame.$eval(videoSelector, (video) => {
+    video.onended = () => {
+      window.exitFullscreen();
+    };
+  });
 }
