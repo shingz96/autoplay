@@ -90,10 +90,10 @@ async function setupAutoPlayFunctions(page) {
     console.log("visiting page ->", page.url());
 
     const LAST_VISIT_URL_FILE = path.join(
-      process.env.USER_DATA_PATH,
+      process.env.USER_DATA_PATH || __dirname,
       "LAST_VISIT_URL"
     );
-
+    
     if (page.url().includes(homepage.replace(/\\/gi, "/"))) {
       fs.readFile(LAST_VISIT_URL_FILE, "utf8", async (err, data) => {
         if (!err && data) {
